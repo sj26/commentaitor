@@ -21,7 +21,39 @@ class WebhookController < ApplicationController
         installation_access_token = github_app_client.create_installation_access_token(installation_id)
         installation_client = Octokit::Client.new(bearer_token: github_app_jwt)
 
-        github_installation_client.add_comment(repository_id, pull_request_number, "Oh hello")
+        sagemaker_response = sagemaker_client.invoke_endpoint({
+          endpoint_name: sagemaker_text_endpoint_name,
+          content_type: "application/json",
+          accept: "application/json",
+          body: {
+            "inputs" => <<~PROMPT,
+              There is a new pull request.
+
+              Pull Request Title:
+              #{pull_request_title}
+
+              Pull Request Body:
+              #{pull_request_body}
+
+              You write a comment on the pull request:
+            PROMPT
+            "parameters" => {
+              "do_sample" => true,
+              "top_p" => 0.9,
+              "temperature" => 0.8,
+              "max_new_tokens" => 1024,
+              "stop" => ["<|endoftext|>", "</s>"],
+            }
+          }.to_json,
+        })
+        sagemaker_body = ActiveSupport::JSON.decode(sagemaker_response.body.read)
+        sagemaker_comment = sagemaker_body[0]["generated_text"]
+
+        Jets.logger.info "Sagemaker response:\n#{sagemaker_body.pretty_inspect}"
+
+        github_comment = github_installation_client.add_comment(repository_id, pull_request_number, sagemaker_comment)
+
+        Jets.logger.info "GitHub comment:\n#{github_comment.pretty_inspect}"
       end
     end
 
@@ -29,6 +61,14 @@ class WebhookController < ApplicationController
   end
 
   private
+
+  def sagemaker_text_endpoint_name
+    ENV.fetch("SAGEMAKER_TEXT_ENDPOINT_NAME")
+  end
+
+  def sagemaker_client
+    @sagemaker_client ||= Aws::SageMakerRuntime::Client.new
+  end
 
   def github_event
     request.headers.fetch("X-GitHub-Event")
