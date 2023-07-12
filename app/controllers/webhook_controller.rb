@@ -17,25 +17,21 @@ class WebhookController < ApplicationController
         pull_request_title = params.fetch(:pull_request).fetch(:title)
         pull_request_body = params.fetch(:pull_request).fetch(:body)
 
-        installation_id = params.fetch("installation").fetch("id")
-        installation_access_token = github_app_client.create_installation_access_token(installation_id)
-        installation_client = Octokit::Client.new(bearer_token: github_app_jwt)
-
         sagemaker_response = sagemaker_client.invoke_endpoint({
           endpoint_name: sagemaker_text_endpoint_name,
           content_type: "application/json",
           accept: "application/json",
           body: {
             "inputs" => <<~PROMPT,
-              There is a new pull request.
+              You are an expert programmer, and you are writing a comment on a new pull request.
 
-              Pull Request Title:
+              THE PULL REQUEST TITLE IS:
               #{pull_request_title}
 
-              Pull Request Body:
+              THE PULL REQUEST BODY IS:
               #{pull_request_body}
 
-              You write a comment on the pull request:
+              THE PULL REQUEST COMMENT IS:
             PROMPT
             "parameters" => {
               "do_sample" => true,
@@ -50,6 +46,10 @@ class WebhookController < ApplicationController
         sagemaker_comment = sagemaker_body[0]["generated_text"]
 
         Jets.logger.info "Sagemaker response:\n#{sagemaker_body.pretty_inspect}"
+
+        github_installation_id = params.fetch("installation").fetch("id")
+        github_installation_access_token = github_app_client.create_installation_access_token(github_installation_id)
+        github_installation_client = Octokit::Client.new(bearer_token: github_installation_access_token)
 
         github_comment = github_installation_client.add_comment(repository_id, pull_request_number, sagemaker_comment)
 
@@ -73,20 +73,6 @@ class WebhookController < ApplicationController
   def github_event
     # jets downcases all header names
     request.headers.fetch("x-github-event")
-  end
-
-  def github_installation_id
-    request.headers.fetch("x-github-hook-installation-target-id").to_i
-  end
-
-  def github_installation_client
-    # https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#authenticating-with-an-installation-access-token
-    @github_installation_client ||= Octokit::Client.new(bearer_token: github_installation_access_token)
-  end
-
-  def github_installation_access_token
-    # https://docs.github.com/en/rest/apps/apps#create-an-installation-access-token-for-an-app
-    @github_installation_access_token ||= github_app_client.create_installation_access_token(github_installation_id).fetch(:token)
   end
 
   def github_app_client
