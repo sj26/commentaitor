@@ -10,6 +10,9 @@ gem "zeitwerk", ">= 2.5.0"
 gem "jwt"
 gem "octokit"
 
+# Sagemaker API
+gem "aws-sdk-sagemakerruntime"
+
 # development and test groups are not bundled as part of the deployment
 group :development, :test do
   # Call "byebug" anywhere in the code to stop execution and get a debugger console
