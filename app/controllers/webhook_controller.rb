@@ -71,11 +71,12 @@ class WebhookController < ApplicationController
   end
 
   def github_event
-    request.headers.fetch("X-GitHub-Event")
+    # jets downcases all header names
+    request.headers.fetch("x-github-event")
   end
 
   def github_installation_id
-    request.headers.fetch("X-GitHub-Hook-Installation-Target-ID").to_i
+    request.headers.fetch("x-github-hook-installation-target-id").to_i
   end
 
   def github_installation_client
