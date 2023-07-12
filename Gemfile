@@ -6,6 +6,10 @@ gem "jets", "~> 4.0.0"
 gem "dynomite"
 gem "zeitwerk", ">= 2.5.0"
 
+# GitHub API
+gem "jwt"
+gem "octokit"
+
 # development and test groups are not bundled as part of the deployment
 group :development, :test do
   # Call "byebug" anywhere in the code to stop execution and get a debugger console
