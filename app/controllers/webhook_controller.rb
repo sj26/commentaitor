@@ -49,7 +49,7 @@ class WebhookController < ApplicationController
 
         github_installation_id = params.fetch("installation").fetch("id")
         github_installation_access_token = github_app_client.create_installation_access_token(github_installation_id)
-        github_installation_client = Octokit::Client.new(bearer_token: github_installation_access_token)
+        github_installation_client = Octokit::Client.new(bearer_token: github_installation_access_token.fetch(:token))
 
         github_comment = github_installation_client.add_comment(repository_id, pull_request_number, sagemaker_comment)
 
