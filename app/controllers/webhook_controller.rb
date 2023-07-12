@@ -1,4 +1,12 @@
 class WebhookController < ApplicationController
+  # https://rubyonjets.com/docs/iam-policies/
+  iam_policy("sagemaker", {
+    action: ["sagemaker:InvokeEndpoint"],
+    effect: "Allow",
+    resource: [
+      "arn:aws:sagemaker:#{Jets.aws.region}:#{Jets.aws.account}:endpoint/*",
+    ],
+  })
   def process
     case github_event
     when "pull_request"
