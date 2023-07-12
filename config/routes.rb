@@ -1,4 +1,6 @@
 Jets.application.routes.draw do
+  post :webhook, to: "webhook#process"
+
   root "jets/public#show"
 
   # The jets/public#show controller can serve static utf8 content out of the public folder.
